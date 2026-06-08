@@ -8,6 +8,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   check:
     name: Check trigger flags
@@ -18,6 +21,7 @@ jobs:
       version: ${{ steps.flags.outputs.version }}
       mc_version: ${{ steps.flags.outputs.mc_version }}
       archive_name: ${{ steps.flags.outputs.archive_name }}
+      gradle_args: ${{ steps.flags.outputs.gradle_args }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -54,6 +58,7 @@ jobs:
           MSG="$HEAD_COMMIT_MSG"
           BUILD=false
           RELEASE=false
+          GRADLE_ARGS="--stacktrace"
 
           if echo "$MSG" | grep -qi "build release"; then
             BUILD=true
@@ -62,8 +67,15 @@ jobs:
             BUILD=true
           fi
 
+          if echo "$MSG" | grep -q -- "--debug"; then
+            GRADLE_ARGS="--stacktrace --info --debug"
+          elif echo "$MSG" | grep -q -- "--info"; then
+            GRADLE_ARGS="--stacktrace --info"
+          fi
+
           echo "should_build=$BUILD" >> "$GITHUB_OUTPUT"
           echo "should_release=$RELEASE" >> "$GITHUB_OUTPUT"
+          echo "gradle_args=$GRADLE_ARGS" >> "$GITHUB_OUTPUT"
 
       - name: Print parsed flags
         run: |
@@ -72,6 +84,7 @@ jobs:
           echo "Archive: ${{ steps.flags.outputs.archive_name }}"
           echo "Build: ${{ steps.flags.outputs.should_build }}"
           echo "Release: ${{ steps.flags.outputs.should_release }}"
+          echo "Gradle args: ${{ steps.flags.outputs.gradle_args }}"
 
   build:
     name: Build Forge mod JAR
@@ -98,7 +111,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build with Gradle
-        run: ./gradlew build --no-daemon
+        run: ./gradlew build -PciBuildOnly=true --no-daemon ${{ needs.check.outputs.gradle_args }}
 
       - name: Prepare artifact
         shell: bash

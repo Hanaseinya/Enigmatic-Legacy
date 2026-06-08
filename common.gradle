@@ -90,67 +90,12 @@ tasks.withType(Jar) {
     }
 }
 
-curseforge {
-
-    project {
-		println("Pushing CurseGradle specifications for project ID: ${curse_id}")
-		
-		// Specified as cmd argument
-        apiKey = findProperty('curseKey') ?: '0'
-        
-		id = project.curse_id
-        releaseType = project.curse_release
-        changelogType = 'html'
-        changelog = file('docs/changelog.html')
-		
-		addGameVersion project.version_mc
-		addGameVersion 'Forge'
-		addGameVersion 'Java 17'
-		
-		relations {
-			requiredDependency 'curios'
-			requiredDependency 'patchouli'
-			requiredDependency 'caelus'
-		}
-		
-        //addArtifact(sourcesJar)
-        //addArtifact(apiJar)
-    }
-}
-
-modrinth {
-    token = findProperty('modrinthKey') ?: '0'
-    projectId = "IpUWAlqM"
-    versionNumber = project.version
-	versionName = "Enigmatic Legacy v" + project.version
-    versionType = "release"
-	changelog = "See on CurseForge: https://www.curseforge.com/minecraft/mc-mods/enigmatic-legacy/files"
-    uploadFile = jar
-    gameVersions = [ project.version_mc ]
-	loaders = [ 'forge' ]
-    dependencies {
-		// The scope can be `required`, `optional`, or `incompatible`
-		required.project "nU0bVIaL"
-		required.project "vvuO3ImH"
-		required.project "40FYwb4z"
-    }
-	
-	syncBodyFrom = rootProject.file("docs/README.md").text
-}
-
-task upload {
-	dependsOn('modrinth')
-	dependsOn('curseforge')
-}
-
 tasks.withType(JavaCompile) {
     options.failOnError(true)
 }
 
 jar.finalizedBy('reobfJar')
 //publish.dependsOn('reobfJar')
-
-tasks.modrinth.dependsOn(tasks.modrinthSyncBody)
 
 publishing {
 
