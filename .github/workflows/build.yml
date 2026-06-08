@@ -1,40 +1,206 @@
-# Automatically build the project and run any configured tests for every push
-# and submitted pull request. This can help catch issues that only occur on
-# certain platforms or Java versions, and provides a first line of defence
-# against bad commits.
+name: Build & Release
 
-name: build
-on: [pull_request, push]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        # Use these Java versions
-        java: [
-          17,    # Current Java LTS & minimum supported by Minecraft
-        ]
-        # and run on both Linux and Windows
-        os: [ubuntu-20.04, windows-2022]
-    runs-on: ${{ matrix.os }}
+  check:
+    name: Check trigger flags
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.flags.outputs.should_build }}
+      should_release: ${{ steps.flags.outputs.should_release }}
+      version: ${{ steps.flags.outputs.version }}
+      mc_version: ${{ steps.flags.outputs.mc_version }}
+      archive_name: ${{ steps.flags.outputs.archive_name }}
     steps:
-      - name: checkout repository
-        uses: actions/checkout@v3
-      - name: validate gradle wrapper
-        uses: gradle/wrapper-validation-action@v1
-      - name: setup jdk ${{ matrix.java }}
-        uses: actions/setup-java@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Parse version and commit message
+        id: flags
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_COMMIT_MSG: ${{ github.event.head_commit.message }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          VERSION="$(grep '^mod_version=' gradle.properties | head -1 | cut -d'=' -f2- | tr -d '\r')"
+          MC_VERSION="$(grep '^version_mc=' gradle.properties | head -1 | cut -d'=' -f2- | tr -d '\r')"
+          ARCHIVE_NAME="$(grep '^mod_archives_name=' gradle.properties | head -1 | cut -d'=' -f2- | tr -d '\r')"
+          TAG="v${VERSION}"
+
+          echo "version=$TAG" >> "$GITHUB_OUTPUT"
+          echo "mc_version=$MC_VERSION" >> "$GITHUB_OUTPUT"
+          echo "archive_name=$ARCHIVE_NAME" >> "$GITHUB_OUTPUT"
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          MSG="$HEAD_COMMIT_MSG"
+          BUILD=false
+          RELEASE=false
+
+          if echo "$MSG" | grep -qi "build release"; then
+            BUILD=true
+            RELEASE=true
+          elif echo "$MSG" | grep -qi "build action"; then
+            BUILD=true
+          fi
+
+          echo "should_build=$BUILD" >> "$GITHUB_OUTPUT"
+          echo "should_release=$RELEASE" >> "$GITHUB_OUTPUT"
+
+      - name: Print parsed flags
+        run: |
+          echo "Version: ${{ steps.flags.outputs.version }}"
+          echo "Minecraft: ${{ steps.flags.outputs.mc_version }}"
+          echo "Archive: ${{ steps.flags.outputs.archive_name }}"
+          echo "Build: ${{ steps.flags.outputs.should_build }}"
+          echo "Release: ${{ steps.flags.outputs.should_release }}"
+
+  build:
+    name: Build Forge mod JAR
+    needs: check
+    if: needs.check.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: ${{ matrix.java }}
-      - name: make gradle wrapper executable
-        if: ${{ runner.os != 'Windows' }}
+          java-version: "17"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
-      - name: build
-        run: ./gradlew build
-      - name: capture build artifacts
-        if: ${{ runner.os == 'Linux' && matrix.java == '17' }} # Only upload artifacts built from latest java on one OS
-        uses: actions/upload-artifact@v2
+
+      - name: Build with Gradle
+        run: ./gradlew build --no-daemon
+
+      - name: Prepare artifact
+        shell: bash
+        run: |
+          VERSION="${{ needs.check.outputs.version }}"
+          MC_VERSION="${{ needs.check.outputs.mc_version }}"
+          ARCHIVE_NAME="${{ needs.check.outputs.archive_name }}"
+
+          JAR_FILE="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' | head -1)"
+
+          if [ -z "$JAR_FILE" ]; then
+            echo "No JAR found in build/libs"
+            exit 1
+          fi
+
+          ASSET_NAME="${ARCHIVE_NAME}-${VERSION}-mc${MC_VERSION}-forge-vincentzyu-fork.jar"
+          cp "$JAR_FILE" "$ASSET_NAME"
+
+          echo "asset_name=$ASSET_NAME" >> "$GITHUB_ENV"
+          echo "jar_file=$JAR_FILE" >> "$GITHUB_ENV"
+          echo "Prepared artifact: $ASSET_NAME from $JAR_FILE"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: Artifacts
-          path: build/libs/
+          name: ${{ env.asset_name }}
+          path: ${{ env.asset_name }}
+
+  release:
+    name: Publish GitHub release
+    needs: [check, build]
+    if: needs.check.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: List downloaded files
+        run: ls -lh
+
+      - name: Delete existing release and tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ needs.check.outputs.version }}"
+          gh release delete "$VERSION" --yes --cleanup-tag 2>/dev/null || echo "No existing release to delete"
+          sleep 2
+
+      - name: Generate release notes
+        shell: bash
+        run: |
+          VERSION="${{ needs.check.outputs.version }}"
+          MC_VERSION="${{ needs.check.outputs.mc_version }}"
+          PREV_TAG="$(git tag --sort=-v:refname | grep -v "^${VERSION}$" | head -1)"
+
+          {
+            echo "# Enigmatic Legacy ${VERSION}"
+            echo
+            echo "- Branch: \`${{ github.ref_name }}\`"
+            echo "- Minecraft: \`${MC_VERSION}\`"
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo
+            echo "## Changes"
+          } > release_notes.md
+
+          if [ -n "$PREV_TAG" ]; then
+            git log "${PREV_TAG}..HEAD" --pretty=format:'- %s (`%h`) by @%an' --reverse \
+              | grep -Evi '^- .*build release.*$' >> release_notes.md || true
+          else
+            git log --pretty=format:'- %s (`%h`) by @%an' --reverse \
+              | grep -Evi '^- .*build release.*$' >> release_notes.md || true
+          fi
+
+          if [ "$(tail -n 1 release_notes.md | wc -c)" -le 1 ]; then
+            echo "- No changelog entries." >> release_notes.md
+          fi
+
+          echo "Generated release notes:"
+          cat release_notes.md
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ needs.check.outputs.version }}"
+          ARCHIVE_NAME="${{ needs.check.outputs.archive_name }}"
+          JAR_FILE="$(find . -maxdepth 1 -type f -name "${ARCHIVE_NAME}-${VERSION}-mc*.jar" | head -1)"
+
+          if [ -z "$JAR_FILE" ]; then
+            echo "Release asset not found"
+            exit 1
+          fi
+
+          gh release create "$VERSION" \
+            --title "Enigmatic Legacy ${VERSION}" \
+            --notes-file release_notes.md \
+            --latest \
+            "$JAR_FILE"

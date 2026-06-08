@@ -74,6 +74,7 @@ public class CursedRing extends ItemBaseCurio {
 	public static Omniconfig.BooleanParameter enableLore;
 	public static Omniconfig.BooleanParameter concealAbilities;
 	public static Omniconfig.BooleanParameter disableInsomnia;
+	public static Omniconfig.BooleanParameter endlessFire;
 
 	public static Omniconfig.BooleanParameter ultraHardcore;
 	public static Omniconfig.BooleanParameter autoEquip;
@@ -148,6 +149,10 @@ public class CursedRing extends ItemBaseCurio {
 					.comment("Set to true to prevent curse of insomnia from actually doing anything.")
 					.getBoolean("disableInsomnia", false);
 
+			endlessFire = builder
+					.comment("Set to false to disable the curse that causes bearers to keep burning until they extinguish themselves.")
+					.getBoolean("EndlessFire", true);
+
 			knockbackDebuff = builder
 					.comment("How much knockback bearers of the ring take, measured in percents.")
 					.getPerhaps("KnockbackDebuff", 200);
@@ -220,7 +225,9 @@ public class CursedRing extends ItemBaseCurio {
 			ItemLoreHelper.addLocalizedString(list, "tooltip.enigmaticlegacy.cursedRing5");
 			ItemLoreHelper.addLocalizedString(list, "tooltip.enigmaticlegacy.cursedRing6", ChatFormatting.GOLD, armorDebuff+"%");
 			ItemLoreHelper.addLocalizedString(list, "tooltip.enigmaticlegacy.cursedRing7", ChatFormatting.GOLD, monsterDamageDebuff+"%");
-			ItemLoreHelper.addLocalizedString(list, "tooltip.enigmaticlegacy.cursedRing8");
+			if (endlessFire.getValue()) {
+				ItemLoreHelper.addLocalizedString(list, "tooltip.enigmaticlegacy.cursedRing8");
+			}
 			ItemLoreHelper.addLocalizedString(list, "tooltip.enigmaticlegacy.cursedRing9");
 			ItemLoreHelper.addLocalizedString(list, "tooltip.enigmaticlegacy.cursedRing10");
 			ItemLoreHelper.addLocalizedString(list, "tooltip.enigmaticlegacy.void");

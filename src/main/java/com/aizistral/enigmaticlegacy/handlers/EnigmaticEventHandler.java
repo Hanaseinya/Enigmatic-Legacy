@@ -1132,7 +1132,7 @@ public class EnigmaticEventHandler {
 					}
 				}
 
-			if (player.isOnFire() && SuperpositionHandler.hasCurio(player, EnigmaticItems.CURSED_RING)) {
+			if (CursedRing.endlessFire.getValue() && player.isOnFire() && SuperpositionHandler.hasCurio(player, EnigmaticItems.CURSED_RING)) {
 				player.setRemainingFireTicks(player.getRemainingFireTicks()+2);
 			}
 
