@@ -51,6 +51,8 @@ chore: publish fork build; build release --info
 - CI 构建时会传入 `-PciBuildOnly=true`
 - 这会跳过 `Modrinth` 和 `CurseForge` 相关的发布配置
 - 只执行本地 Forge 模组构建和 GitHub Release
+- GitHub Release 采用“存在则更新，不存在则创建”的策略
+- 创建 release 时会显式绑定到当前 commit SHA
 
 ## 产物命名
 

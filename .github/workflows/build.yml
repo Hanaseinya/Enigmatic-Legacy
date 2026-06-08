@@ -159,14 +159,6 @@ jobs:
       - name: List downloaded files
         run: ls -lh
 
-      - name: Delete existing release and tag
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          VERSION="${{ needs.check.outputs.version }}"
-          gh release delete "$VERSION" --yes --cleanup-tag 2>/dev/null || echo "No existing release to delete"
-          sleep 2
-
       - name: Generate release notes
         shell: bash
         run: |
@@ -199,7 +191,7 @@ jobs:
           echo "Generated release notes:"
           cat release_notes.md
 
-      - name: Create GitHub release
+      - name: Create or update GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -212,8 +204,18 @@ jobs:
             exit 1
           fi
 
-          gh release create "$VERSION" \
-            --title "Enigmatic Legacy ${VERSION}" \
-            --notes-file release_notes.md \
-            --latest \
-            "$JAR_FILE"
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION already exists, updating it"
+            gh release upload "$VERSION" "$JAR_FILE" --clobber
+            gh release edit "$VERSION" \
+              --title "Enigmatic Legacy ${VERSION}" \
+              --notes-file release_notes.md
+          else
+            echo "Release $VERSION does not exist, creating it"
+            gh release create "$VERSION" \
+              --target "${{ github.sha }}" \
+              --title "Enigmatic Legacy ${VERSION}" \
+              --notes-file release_notes.md \
+              --latest \
+              "$JAR_FILE"
+          fi
