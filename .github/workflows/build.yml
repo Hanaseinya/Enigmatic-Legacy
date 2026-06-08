@@ -162,9 +162,10 @@ jobs:
       - name: Generate release notes
         shell: bash
         run: |
+          set -e
           VERSION="${{ needs.check.outputs.version }}"
           MC_VERSION="${{ needs.check.outputs.mc_version }}"
-          PREV_TAG="$(git tag --sort=-v:refname | grep -v "^${VERSION}$" | head -1)"
+          PREV_TAG="$(git tag --sort=-v:refname | grep -v "^${VERSION}$" | head -1 || true)"
 
           {
             echo "# Enigmatic Legacy ${VERSION}"

@@ -151,7 +151,7 @@ public class CursedRing extends ItemBaseCurio {
 
 			endlessFire = builder
 					.comment("Set to false to disable the curse that causes bearers to keep burning until they extinguish themselves.")
-					.getBoolean("EndlessFire", true);
+					.getBoolean("EndlessFire", false);
 
 			knockbackDebuff = builder
 					.comment("How much knockback bearers of the ring take, measured in percents.")
