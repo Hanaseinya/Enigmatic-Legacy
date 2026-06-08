@@ -195,9 +195,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -x
           VERSION="${{ needs.check.outputs.version }}"
           ARCHIVE_NAME="${{ needs.check.outputs.archive_name }}"
           JAR_FILE="$(find . -maxdepth 1 -type f -name "${ARCHIVE_NAME}-${VERSION}-mc*.jar" | head -1)"
+
+          pwd
+          ls -lh
+          echo "Resolved version: $VERSION"
+          echo "Resolved archive name: $ARCHIVE_NAME"
+          echo "Resolved jar file: $JAR_FILE"
 
           if [ -z "$JAR_FILE" ]; then
             echo "Release asset not found"
