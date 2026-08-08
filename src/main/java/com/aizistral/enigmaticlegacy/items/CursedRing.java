@@ -69,6 +69,7 @@ public class CursedRing extends ItemBaseCurio {
 	public static Omniconfig.DoubleParameter neutralXRayRange;
 	public static Omniconfig.DoubleParameter endermenRandomportRange;
 	public static Omniconfig.DoubleParameter endermenRandomportFrequency;
+	public static Omniconfig.BooleanParameter neutralMobAggression;
 	public static Omniconfig.BooleanParameter saveTheBees;
 	public static Omniconfig.BooleanParameter enableSpecialDrops;
 	public static Omniconfig.BooleanParameter enableLore;
@@ -165,6 +166,10 @@ public class CursedRing extends ItemBaseCurio {
 			neutralXRayRange = builder
 					.comment("Range in which neutral creatures can see and target bearers of the ring even if they can't directly see them.")
 					.getDouble("NeutralXRayRange", 4);
+
+			neutralMobAggression = builder
+					.comment("If false, neutral creatures will not become hostile to bearers of the ring due to the Second Curse.")
+					.getBoolean("NeutralMobAggression", true);
 
 			endermenRandomportFrequency = builder
 					.comment("Allows to adjust how frequently Endermen will try to randomly teleport to player bearing the ring, even "
@@ -330,6 +335,9 @@ public class CursedRing extends ItemBaseCurio {
 		Player player = (Player) context.entity();
 
 		if (player.isCreative() || player.isSpectator())
+			return;
+
+		if (!neutralMobAggression.getValue())
 			return;
 
 		List<LivingEntity> genericMobs = player.level().getEntitiesOfClass(LivingEntity.class, SuperpositionHandler.getBoundingBoxAroundEntity(player, neutralAngerRange.getValue()));

@@ -41,3 +41,8 @@ old_changelog.txt
 
 model
 /.run
+
+
+# temp dir
+temp
+tmp

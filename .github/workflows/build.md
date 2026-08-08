@@ -17,12 +17,12 @@
 
 ## commit message 关键字
 
-- `build action`
+- `build-action`
   - 执行构建
   - 上传构建产物到 Actions Artifacts
   - 不发布 GitHub Release
 
-- `build release`
+- `build-release`
   - 执行构建
   - 上传构建产物
   - 发布 GitHub Release
@@ -39,11 +39,11 @@
 示例：
 
 ```text
-chore: trigger ci; build action --debug
+chore: trigger ci; build-action --debug
 ```
 
 ```text
-chore: publish fork build; build release --info
+chore: publish fork build; build-release --info
 ```
 
 ## 当前 CI 行为

@@ -60,10 +60,10 @@ jobs:
           RELEASE=false
           GRADLE_ARGS="--stacktrace"
 
-          if echo "$MSG" | grep -qi "build release"; then
+          if echo "$MSG" | grep -qi "build-release"; then
             BUILD=true
             RELEASE=true
-          elif echo "$MSG" | grep -qi "build action"; then
+          elif echo "$MSG" | grep -qi "build-action"; then
             BUILD=true
           fi
 
@@ -179,10 +179,10 @@ jobs:
 
           if [ -n "$PREV_TAG" ]; then
             git log "${PREV_TAG}..HEAD" --pretty=format:'- %s (`%h`) by @%an' --reverse \
-              | grep -Evi '^- .*build release.*$' >> release_notes.md || true
+              | grep -Evi '^- .*build-release.*$' >> release_notes.md || true
           else
             git log --pretty=format:'- %s (`%h`) by @%an' --reverse \
-              | grep -Evi '^- .*build release.*$' >> release_notes.md || true
+              | grep -Evi '^- .*build-release.*$' >> release_notes.md || true
           fi
 
           if [ "$(tail -n 1 release_notes.md | wc -c)" -le 1 ]; then
