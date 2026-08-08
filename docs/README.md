@@ -1,6 +1,6 @@
 # Enigmatic Legacy [![](http://cf.way2muchnoise.eu/versions/enigmatic-legacy.svg)](https://www.curseforge.com/minecraft/mc-mods/enigmatic-legacy) [![](http://cf.way2muchnoise.eu/full_enigmatic-legacy_downloads.svg)](https://www.curseforge.com/minecraft/mc-mods/enigmatic-legacy/files)
 
-**Current Version:** 2.30.1-hanasei.2
+**Current Version:** 2.30.1-hanasei.3
 
 **Minecraft Version:** 1.20.1
 

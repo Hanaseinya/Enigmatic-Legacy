@@ -127,7 +127,7 @@ jobs:
             exit 1
           fi
 
-          ASSET_NAME="${ARCHIVE_NAME}-${VERSION}-mc${MC_VERSION}-forge-vincentzyu-fork.jar"
+          ASSET_NAME="${ARCHIVE_NAME}-${VERSION}-mc${MC_VERSION}-forge-hanasei-fork.jar"
           cp "$JAR_FILE" "$ASSET_NAME"
 
           echo "asset_name=$ASSET_NAME" >> "$GITHUB_ENV"

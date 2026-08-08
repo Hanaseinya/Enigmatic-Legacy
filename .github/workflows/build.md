@@ -59,11 +59,11 @@ chore: publish fork build; build-release --info
 上传到 GitHub Actions / GitHub Release 的文件名格式：
 
 ```text
-EnigmaticLegacy-v<版本号>-mc<MC版本>-forge-vincentzyu-fork.jar
+EnigmaticLegacy-v<版本号>-mc<MC版本>-forge-hanasei-fork.jar
 ```
 
 例如：
 
 ```text
-EnigmaticLegacy-v2.30.1-mc1.20.1-forge-vincentzyu-fork.jar
+EnigmaticLegacy-v2.30.1-mc1.20.1-forge-hanasei-fork.jar
 ```
